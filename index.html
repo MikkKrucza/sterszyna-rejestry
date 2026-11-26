@@ -71,7 +71,9 @@ document.getElementById("form").addEventListener("submit", (event) => {
 
   // sendData dziala tylko w Mini App otwartej przyciskiem z czatu z botem.
   // Telegram wysyla dane jako zalogowany uzytkownik - ESP32 sprawdza, czy to uprawniony czat.
-  if (!tg || !tg.initData) {
+  // Nie sprawdzamy initData: przy otwarciu z przycisku klawiatury jest zawsze puste.
+  // Poza Telegramem platform ma wartosc "unknown".
+  if (!tg || tg.platform === "unknown") {
     info.textContent = "Otwórz tę stronę przyciskiem „Rejestry” w czacie z botem. Do wysłania:\n" + lines.join("\n");
     return;
   }
