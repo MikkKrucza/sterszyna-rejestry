@@ -26,12 +26,15 @@
   <button type="submit">Wyślij</button>
 </form>
 <p id="info">* górna granica zależy od innego parametru.</p>
+<p><small>wersja 3</small></p>
 
 <script>
 // Poza Telegramem (lub bez jego skryptu) strona nadal pokazuje liste rejestrow.
 const tg = window.Telegram && window.Telegram.WebApp;
 if (tg) tg.ready();
 const info = document.getElementById("info");
+// Komunikat widoczny od razu (pole info jest pod dluga tabela).
+const say = (text) => (tg && tg.isVersionAtLeast("6.2") ? tg.showAlert(text) : alert(text));
 
 // Lista rejestrow: kod, nazwa, pole na wartosc, dopuszczalny zakres.
 const list = document.getElementById("list");
@@ -65,16 +68,23 @@ document.getElementById("form").addEventListener("submit", (event) => {
     .filter((el) => el.tagName === "INPUT" && el.value !== "")
     .map((el) => "SET " + el.name + " " + el.value);
   if (lines.length === 0) {
-    info.textContent = "Wpisz przynajmniej jedną wartość.";
+    say("Wpisz przynajmniej jedną wartość.");
     return;
   }
 
-  // sendData dziala tylko w Mini App otwartej przyciskiem z czatu z botem.
+  // sendData dziala tylko w Mini App otwartej przyciskiem klawiatury w czacie z botem.
   // Telegram wysyla dane jako zalogowany uzytkownik - ESP32 sprawdza, czy to uprawniony czat.
-  // Nie sprawdzamy initData: przy otwarciu z przycisku klawiatury jest zawsze puste.
-  // Poza Telegramem platform ma wartosc "unknown".
   if (!tg || tg.platform === "unknown") {
-    info.textContent = "Otwórz tę stronę przyciskiem „Rejestry” w czacie z botem. Do wysłania:\n" + lines.join("\n");
+    // Poza Telegramem (np. zwykla przegladarka) platform ma wartosc "unknown".
+    info.textContent = "Do wysłania:\n" + lines.join("\n");
+    say("Strona otwarta poza Telegramem - nie można wysłać. Otwórz ją przyciskiem „Rejestry” w czacie z botem.");
+    return;
+  }
+  if (tg.initData) {
+    // initData jest puste tylko przy otwarciu z przycisku klawiatury; niepuste = link,
+    // menu albo przycisk w wiadomosci, a wtedy Telegram nie przyjmuje sendData.
+    say("Strona otwarta nie z przycisku klawiatury - Telegram nie pozwala wtedy wysłać danych. " +
+        "Użyj przycisku „Rejestry” pod polem wiadomości (komenda PANEL go pokazuje).");
     return;
   }
   tg.sendData(lines.join("\n"));  // Zamyka Mini App, wynik przychodzi w czacie.
