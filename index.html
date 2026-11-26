@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rejestry falownika</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="params.js"></script>
+<style>
+  /* Kolory z motywu Telegrama, z prostymi wartosciami zapasowymi poza Telegramem. */
+  body { font-family: sans-serif; margin: 12px;
+         background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); }
+  table { border-collapse: collapse; width: 100%; }
+  td { padding: 4px; border-bottom: 1px solid #8884; }
+  td:first-child { white-space: nowrap; }
+  input { width: 6em; }
+  .range { color: var(--tg-theme-hint-color, #666); white-space: nowrap; }
+  button { margin-top: 12px; padding: 8px 16px; }
+  #info { white-space: pre-line; }
+</style>
+</head>
+<body>
+<h3>Rejestry falownika</h3>
+<form id="form">
+  <table id="list"></table>
+  <button type="submit">Wyślij</button>
+</form>
+<p id="info">* górna granica zależy od innego parametru.</p>
+
+<script>
+// Poza Telegramem (lub bez jego skryptu) strona nadal pokazuje liste rejestrow.
+const tg = window.Telegram && window.Telegram.WebApp;
+if (tg) tg.ready();
+const info = document.getElementById("info");
+
+// Lista rejestrow: kod, nazwa, pole na wartosc, dopuszczalny zakres.
+const list = document.getElementById("list");
+for (const p of PARAMS) {
+  const row = list.insertRow();
+  row.insertCell().textContent = p.code;
+  row.insertCell().textContent = p.name;
+
+  const input = document.createElement("input");
+  input.type = "number";
+  input.name = p.code;
+  input.min = p.min;
+  input.max = p.max;
+  input.step = p.decimal ? "any" : "1";
+  input.setAttribute("aria-label", p.code + " " + p.name);
+  row.insertCell().appendChild(input);
+
+  // Gorna granica parametrow zaleznych moze byc nizsza - ostatecznie sprawdza ESP32.
+  const range = row.insertCell();
+  range.className = "range";
+  range.textContent = p.min + " … " + p.max + (p.unit ? " " + p.unit : "") + (p.dependent ? " *" : "");
+}
+
+document.getElementById("form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const form = event.target;
+  if (!form.reportValidity()) return;  // Zakres i format sprawdzane przez przegladarke.
+
+  // Te same komendy co w czacie, jedna na linie; puste pola sa pomijane.
+  const lines = [...form.elements]
+    .filter((el) => el.tagName === "INPUT" && el.value !== "")
+    .map((el) => "SET " + el.name + " " + el.value);
+  if (lines.length === 0) {
+    info.textContent = "Wpisz przynajmniej jedną wartość.";
+    return;
+  }
+
+  // sendData dziala tylko w Mini App otwartej przyciskiem z czatu z botem.
+  // Telegram wysyla dane jako zalogowany uzytkownik - ESP32 sprawdza, czy to uprawniony czat.
+  if (!tg || !tg.initData) {
+    info.textContent = "Otwórz tę stronę przyciskiem „Rejestry” w czacie z botem. Do wysłania:\n" + lines.join("\n");
+    return;
+  }
+  tg.sendData(lines.join("\n"));  // Zamyka Mini App, wynik przychodzi w czacie.
+});
+</script>
+</body>
+</html>
