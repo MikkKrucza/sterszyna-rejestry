@@ -82,9 +82,7 @@ document.getElementById("form").addEventListener("submit", (event) => {
   }
   if (tg.initData) {
     // initData jest puste tylko przy otwarciu z przycisku klawiatury; niepuste = link,
-    // menu albo przycisk w wiadomosci, a wtedy Telegram nie przyjmuje sendData.
-    say("Strona otwarta nie z przycisku klawiatury - Telegram nie pozwala wtedy wysłać danych. " +
-        "Użyj przycisku „Rejestry” pod polem wiadomości (komenda PANEL go pokazuje).");
+    say("Strona otwarta nie z przycisku klawiatury - Telegram nie pozwala wtedy wysłać danych. ");
     return;
   }
   tg.sendData(lines.join("\n"));  // Zamyka Mini App, wynik przychodzi w czacie.
